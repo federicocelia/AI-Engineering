@@ -1,15 +1,13 @@
 {
   "name": "aiei-1.3",
   "version": "0.0.1",
-  "description": "1.3 Importing & Creating The OpenAI Client",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "vite"
+    "start": "node index.js"
   },
   "dependencies": {
+    "dotenv": "^18.0.1",
+    "groq-sdk": "^1.6.0",
     "openai": "^6.15.0"
-  },
-  "devDependencies": {
-    "vite": "^7.3.0"
   }
 }
