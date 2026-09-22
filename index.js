@@ -1,75 +1,66 @@
 import "dotenv/config";
+import express from "express";
+import cors from "cors";
 import Groq from "groq-sdk";
 import { checkEnvironment } from "./utils.js";
 
 checkEnvironment();
 
+const app = express();
+
 const groq = new Groq({
   apiKey: process.env.AI_KEY,
 });
 
-const messageHistory = [];
+const messages = [
+  {
+    role: "system",
+    content: `You are the Gift Genie!
+Make your gift suggestions thoughtful and practical.
+Your response must be under 100 words.
+Skip intros and conclusions.
+Only output gift suggestions.`,
+  },
+];
 
-async function sendMessage(userInput) {
+app.use(cors());
+app.use(express.json());
+
+app.post("/api/gifts", async (req, res) => {
   try {
-    // Add user message to history
-    messageHistory.push({
+    const { prompt } = req.body;
+
+    messages.push({
       role: "user",
-      content: userInput,
+      content: prompt,
     });
 
-    // Send entire conversation history
     const response = await groq.chat.completions.create({
       model: process.env.AI_MODEL,
-      messages: messageHistory,
+      messages,
     });
 
-    const aiReply = response.choices[0].message.content;
+    const aiResponse = response.choices[0].message.content;
 
-    // Add AI response to history
-    messageHistory.push({
+    messages.push({
       role: "assistant",
-      content: aiReply,
+      content: aiResponse,
     });
 
-    return aiReply;
+    res.json({
+      success: true,
+      response: aiResponse,
+    });
   } catch (error) {
-    if (error.status === 401 || error.status === 403) {
-      console.error("Authentication error: Check your API key.");
-    } else if (error.status >= 500) {
-      console.error("Provider error: Try again later.");
-    } else {
-      console.error("Unexpected error:", error.message || error);
-    }
+    console.error(error);
 
-    return null;
+    res.status(500).json({
+      success: false,
+      error: "Failed to generate response",
+    });
   }
-}
+});
 
-// First prompt
-const firstReply = await sendMessage(
-  "Suggest some gifts for someone who loves hiphop music. in 150 words",
-);
-
-// console.log("\nAssistant:");
-// console.log(firstReply);
-
-// Follow-up prompt
-const secondReply = await sendMessage(
-  "Can you make those gift ideas under $50? 150 words",
-);
-
-// console.log("\nAssistant:");
-// console.log(secondReply);
-
-// Another follow-up
-const thirdReply = await sendMessage(
-  "Which three would be best for a teenager? 150 words",
-);
-
-// console.log("\nAssistant:");
-// console.log(thirdReply);
-
-// View entire conversation history
-console.log("Conversation History:");
-console.log(JSON.stringify(messageHistory, null, 2));
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});
